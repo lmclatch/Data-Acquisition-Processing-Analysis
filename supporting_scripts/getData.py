@@ -29,14 +29,22 @@ def getSNOTELData(SiteName, SiteID, StateAbb, StartDate, EndDate, OutputFolder):
         if line.startswith("#"):
             i=i+1
     data = data.split("\n")[i:]
-
+    
     df = pd.DataFrame.from_dict(data) 
     df = df[0].str.split(',', expand=True)
+     if df.shape[1] < 2 or df.shape[0] < 2:
+        print(f"  Skipping {SiteName} ({SiteID}): insufficient data returned (shape={df.shape})")
+        print(f"  First few rows: {data[:3]}")
+        return
     df.rename(columns={0:df[0][0], 
                         1:df[1][0]}, inplace=True)
     df.drop(0, inplace=True)
     df.dropna(inplace=True)
     df.reset_index(inplace=True, drop=True)
+     if df.empty or 'Date' not in df.columns:
+        print(f"  Skipping {SiteName} ({SiteID}): no 'Date' column or empty dataframe")
+        return
+        
     df["Date"] = pd.to_datetime(df["Date"])
     df.rename(columns={df.columns[1]:'Snow Water Equivalent (m) Start of Day Values'}, inplace=True)
     df.iloc[:, 1:] = df.iloc[:, 1:].apply(lambda x: pd.to_numeric(x) * 0.0254)  # convert in to m
